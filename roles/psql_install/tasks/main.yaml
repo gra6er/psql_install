@@ -1,0 +1,61 @@
+---
+- name: Install Postgres from module
+  dnf:
+    name: '@postgresql:{{ postgres_version }}/server'
+    state: present
+
+- name: Init DB
+  ansible.builtin.command: postgresql-setup --initdb
+
+- name: Enable and start Postgres
+  ansible.builtin.systemd:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Copy postgres users's change password script
+  ansible.builtin.template:
+    src: templates/change_passwd.sql.j2
+    dest: /var/lib/pgsql/data/change_passwd.sql
+    owner: postgres
+    mode: '0644'
+
+- name: Execute change password script
+  become: yes
+  become_method: sudo
+  become_user: postgres
+  ansible.builtin.command: psql -f /var/lib/pgsql/data/change_passwd.sql
+
+- name: Remove change password script
+  ansible.builtin.file:
+    path: /var/lib/pgsql/data/change_passwd.sql
+    state: absent
+
+- name: Copy postgresql.conf
+  ansible.builtin.copy:
+    src: files/postgresql.conf
+    dest: /var/lib/pgsql/data/postgresql.conf
+    mode: 0644
+
+- name: Copy pg_hba.conf
+  ansible.builtin.copy:
+    src: files/pg_hba.conf
+    dest: /var/lib/pgsql/data/pg_hba.conf
+    mode: 0644
+
+- name: Restart Postgres
+  ansible.builtin.systemd:
+    name: postgresql
+    state: restarted
+    enabled: yes
+
+- name: Open Postgresql port
+  ansible.posix.firewalld:
+    zone: public
+    port: 5432/tcp
+    permanent: yes
+    immediate: yes
+    state: enabled
+
+- name: Reboot the machine 
+  reboot:

@@ -1,0 +1,6 @@
+---
+- name: Deploy Postgresl database server
+  hosts: all
+  gather_facts: no
+  roles:
+    - role: psql_install
