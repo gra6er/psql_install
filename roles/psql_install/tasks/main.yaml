@@ -56,6 +56,3 @@
     permanent: yes
     immediate: yes
     state: enabled
-
-- name: Reboot the machine 
-  reboot:
